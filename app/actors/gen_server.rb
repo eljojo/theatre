@@ -21,10 +21,17 @@ class GenServer
     end
 
     def process(id)
+      outbox = []
       Actor.transaction do
         actor = Actor.lock.find(id)
         message = actor.messages.to_process.first
-        process_message!(actor, message) if message
+        if message
+          outbox = process_message!(actor, message)
+        end
+      end
+      outbox.each do |message|
+        puts("enqueueing message: #{message.inspect}")
+        MessageProcessorJob.perform_later(message.actor_id)
       end
     end
 
@@ -39,16 +46,23 @@ class GenServer
       actor.update!(state: new_state)
       message.update!(processed: true, new_state: new_state)
       logger.debug("[#{name}][id=#{actor.id}] new_state = #{new_state.inspect}")
+
+      server.outbox
     end
   end
 
-  attr_reader :state
+  attr_reader :id, :state, :outbox
 
   def initialize(id, state)
     @id = id
     @state = state
+    @outbox = []
   end
 
   def handle_call(action, params)
+  end
+
+  def enqueue_message(message)
+    @outbox << message
   end
 end
