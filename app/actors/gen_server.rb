@@ -15,11 +15,8 @@ class GenServer
     end
 
     def call(id, action, params = {})
-      Message.create!(
-        actor_id: id,
-        action: action,
-        params: params
-      )
+      Message.create!(actor_id: id, action: action, params: params)
+      MessageProcessorJob.perform_later(id)
       nil
     end
 
