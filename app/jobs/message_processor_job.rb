@@ -3,6 +3,5 @@ class MessageProcessorJob < ApplicationJob
 
   def perform(id)
     Calculator.process(id)
-    sleep(rand(3))
   end
 end
