@@ -4,8 +4,13 @@ class Ping < GenServer
   end
 
   def handle_call(message)
+    if message.created_at < 1.minute.ago
+      puts "stopping stale ping due to #{message.inspect} being too old"
+      return
+    end
+
     case message.action
-    when 'ping' then pong!(message.params.fetch(:id))
+    when 'ping' then pong!(message.sender_id)
     else raise("I don't know how to #{message.action}")
     end
   end
@@ -18,6 +23,6 @@ class Ping < GenServer
     puts "sleeping #{time} seconds"
     sleep(time)
 
-    queue_message(actor_id, 'pong', { id: id })
+    queue_message(actor_id, 'pong')
   end
 end
