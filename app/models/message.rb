@@ -9,7 +9,7 @@ class Message < ApplicationRecord
   serialize :params
 
   def queue_job!
-    puts("enqueueing message: #{inspect}")
+    puts("enqueueing message_id=#{id} receiver_id=#{receiver_id} action=#{action.inspect} params=#{params.inspect}")
     MessageProcessorJob.perform_later(receiver_id)
   end
 end
