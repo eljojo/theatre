@@ -39,7 +39,7 @@ class GenServer
 
   private
 
-  def queue_message(receiver_id, action, params = nil)
-    @outbox << @actor.create_message!(to: receiver_id, action: action, params: params)
+  def queue_message(receiver, action, params = nil)
+    @outbox << @actor.create_message!(to: receiver, action: action, params: params)
   end
 end

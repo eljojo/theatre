@@ -18,6 +18,8 @@ class Actor < ApplicationRecord
   def create_message!(from: nil, to: nil, action:, params: nil)
     sender = from || id
     receiver = to || id
+    sender = sender.id if sender.respond_to?(:id)
+    receiver = receiver.id if receiver.respond_to?(:id)
     raise("invalid sender and receiver") if sender == receiver
     Message.create!(sender_id: sender, receiver_id: receiver, action: action, params: params)
   end

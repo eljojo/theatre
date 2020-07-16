@@ -6,7 +6,7 @@ class Ping < GenServer
   def self.demo
     ping = self.start
     pong = Pong.start
-    pong.send_message!(to: ping.id, action: 'ping')
+    pong.send_message!(to: ping, action: 'ping')
   end
 
   def handle_call(message)
