@@ -1,15 +1,23 @@
 class Ping < GenServer
-  def handle_call(action, params)
-    case action
-    when 'ping' then pong!(params.fetch(:id))
-    else raise("I don't know how to #{action}")
+  def self.start
+    super(0) # set initial state
+  end
+
+  def handle_call(message)
+    case message.action
+    when 'ping' then pong!(message.params.fetch(:id))
+    else raise("I don't know how to #{message.action}")
     end
   end
 
   def pong!(actor_id)
+    @state += 1
+    puts "pong! number #{@state}"
+
     time = rand(1..5)
-    puts "pong! sleeping #{time} seconds"
+    puts "sleeping #{time} seconds"
     sleep(time)
-    enqueue_message(Message.create!(actor_id: actor_id, action: 'pong', params: { id: id }))
+
+    queue_message(actor_id, 'pong', { id: id })
   end
 end

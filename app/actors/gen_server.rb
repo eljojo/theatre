@@ -10,44 +10,7 @@ class GenServer
     def start(state)
       record = Actor.create!(kind: name, state: state)
       logger.debug("[#{name}][id=#{record.id}] new server! state = #{state.inspect}")
-      puts("")
-      record.id
-    end
-
-    def call(id, action, params = {})
-      Message.create!(actor_id: id, action: action, params: params)
-      MessageProcessorJob.perform_later(id)
-      nil
-    end
-
-    def process(id)
-      outbox = []
-      Actor.transaction do
-        actor = Actor.lock.find(id)
-        message = actor.messages.to_process.first
-        if message
-          outbox = process_message!(actor, message)
-        end
-      end
-      outbox.each do |message|
-        puts("enqueueing message: #{message.inspect}")
-        MessageProcessorJob.perform_later(message.actor_id)
-      end
-    end
-
-    def process_message!(actor, message)
-      action, params = message.action, message.params
-      logger.debug("[#{name}][id=#{actor.id}] action=#{action.inspect} params=#{params.inspect}")
-
-      server = new(actor.id, actor.state)
-      server.handle_call(action, params)
-      new_state = server.state
-
-      actor.update!(state: new_state)
-      message.update!(processed: true, new_state: new_state)
-      logger.debug("[#{name}][id=#{actor.id}] new_state = #{new_state.inspect}")
-
-      server.outbox
+      record
     end
   end
 
@@ -59,10 +22,16 @@ class GenServer
     @outbox = []
   end
 
-  def handle_call(action, params)
+  def handle_call(message)
   end
 
-  def enqueue_message(message)
-    @outbox << message
+  private
+
+  def queue_message(receiver_id, action, params = nil)
+    @outbox << create_message!(receiver_id, action, params)
+  end
+
+  def create_message!(to, action, params = nil)
+    Message.create!(sender_id: id, receiver_id: to, action: action, params: params)
   end
 end
