@@ -5,7 +5,7 @@ class Pong < GenServer
 
   def handle_call(message)
     if message.created_at < 1.minute.ago
-      puts "stopping stale pong due to #{message.inspect} being too old"
+      logger.info "stopping stale pong due to #{message.inspect} being too old"
       return
     end
 
@@ -17,10 +17,10 @@ class Pong < GenServer
 
   def ping!(actor_id)
     @state += 1
-    puts "ping! number #{@state}"
+    logger.info "ping! number #{@state}"
 
     time = rand(1..5)
-    puts "sleeping #{time} seconds"
+    logger.info "sleeping #{time} seconds"
     sleep(time)
 
     queue_message(actor_id, 'ping')

@@ -1,37 +1,45 @@
 class GenServer
   class << self
-    def logger
-      return @logger if @logger
-      @logger = Logger.new(Logger::DEBUG)
-      @logger.formatter = proc { |severity, datetime, progname, msg| "#{msg}\n" }
-      @logger
-    end
-
     def start(state)
       record = Actor.create!(kind: name, state: state)
-      logger.debug("[#{name}][id=#{record.id}] new server! state = #{state.inspect}")
+      Rails.logger.info("#{record.log_prefix} new server! state = #{state.inspect}")
       record
     end
   end
 
-  attr_reader :id, :state, :outbox
+  attr_reader :outbox, :state
+  delegate :id, :parent_id, :parent, to: :@actor
 
-  def initialize(id, state)
-    @id = id
-    @state = state
+  def initialize(actor)
+    @actor = actor
+    @state = actor.state
     @outbox = []
+    logger.debug("loaded with state=#{state.inspect}")
   end
 
-  def handle_call(message)
+  def call(message)
+    raise "message #{message.inspect} already processed!" if message.processed?
+
+    action, params = message.action, message.params
+    logger.debug("action=#{action.inspect} params=#{params.inspect}")
+
+    handle_call(message)
+    logger.debug("new_state=#{state.inspect}")
+
+    message.update!(processed: true, new_state: state)
+    @actor.update!(state: state)
+  end
+
+  def logger
+    return @logger if @logger
+    @logger = Logger.new(Logger::DEBUG)
+    @logger.formatter = proc { |severity, datetime, progname, msg| "#{@actor.log_prefix} #{msg}\n" }
+    @logger
   end
 
   private
 
   def queue_message(receiver_id, action, params = nil)
-    @outbox << create_message!(receiver_id, action, params)
-  end
-
-  def create_message!(to, action, params = nil)
-    Message.create!(sender_id: id, receiver_id: to, action: action, params: params)
+    @outbox << @actor.create_message!(to: receiver_id, action: action, params: params)
   end
 end

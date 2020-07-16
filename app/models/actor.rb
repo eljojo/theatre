@@ -12,15 +12,21 @@ class Actor < ApplicationRecord
   end
 
   def helper_instance
-    kind.constantize.new(id, state)
+    kind.constantize.new(self)
   end
 
-  def create_message!(from: nil, action:, params: nil)
-    Message.create!(sender_id: from, receiver_id: id, action: action, params: params)
+  def create_message!(from: nil, to: nil, action:, params: nil)
+    sender = from || id
+    receiver = to || id
+    raise("invalid sender and receiver") if sender == receiver
+    Message.create!(sender_id: sender, receiver_id: receiver, action: action, params: params)
   end
 
-  def send_message!(from: nil, action:, params: nil)
-    message = create_message!(from: from, action: action, params: params)
-    message.queue_job!
+  def send_message!(from: nil, to: nil, action:, params: nil)
+    create_message!(from: from, to: to, action: action, params: params).queue_job!
+  end
+
+  def log_prefix
+    @log_prefix ||= "[#{kind}##{id}]".freeze
   end
 end
